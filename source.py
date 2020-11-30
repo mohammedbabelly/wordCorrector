@@ -1,20 +1,21 @@
 import time
-from multiprocessing import Process, current_process, Manager
+from multiprocessing import Process, current_process, Manager, cpu_count
 from textblob import TextBlob, Word
 
 
-def correctMisspelledWords(line, passedData):
+def correctMisspelledWords(block, passedData):
     processName = current_process().name
     passedData['numProcesses'] += 1
-    originLine = line.split()
-    fixedLine = TextBlob(line).correct()
-    splittedFixedLine = fixedLine.split()
-    for i in range(len(originLine)):
-        if (originLine[i] != splittedFixedLine[i]):
-            passedData["misspelledWordsCount"] += 1
-            passedData["correctedWords"][originLine[i]] = splittedFixedLine[i]
-
-    passedData["finalFileText"] += (str(fixedLine))
+    for line in block:
+        originLine = line.split()
+        fixedLine = TextBlob(line).correct()
+        splittedFixedLine = fixedLine.split()
+        for i in range(len(originLine)):
+            if (originLine[i] != splittedFixedLine[i]):
+                passedData["misspelledWordsCount"] += 1
+                passedData["correctedWords"][originLine[i]
+                                             ] = splittedFixedLine[i]
+        passedData["finalFileText"] += str(fixedLine)
 
 
 def main():
@@ -29,19 +30,25 @@ def main():
     # start opening the file
     # fileName = input('Your file path: ')
     fileName = "files/1.txt"
-    sourceFile = open(fileName, "r")  # r: read
+    sourceFile = open(fileName, "r").readlines()  # r: read
     startTime = time.time()
-    for line in sourceFile:
-        currentProcess = Process(target=correctMisspelledWords, args=(
-            line, passedData))
-        processes.append(currentProcess)
-        currentProcess.start()
+    fileLines = len(sourceFile)
+    blockSize = fileLines / cpu_count()
+    block = []
+    for i in range(fileLines):
+        block.append(str(sourceFile[i]))
+
+        if (len(block) == blockSize or i == fileLines-1):
+            currentProcess = Process(target=correctMisspelledWords, args=(
+                block, passedData))
+            processes.append(currentProcess)
+            currentProcess.start()
+            block = []
 
     # make sure that all the processes are done
     for process in processes:
         process.join()
 
-    sourceFile.close()  # closing the sourceFile
     writeCorrectedFile(passedData["finalFileText"])
     printResult(passedData)
     print('==================Excution time==================')
