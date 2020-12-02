@@ -4,8 +4,10 @@ from textblob import TextBlob, Word
 
 
 def correctMisspelledWords(block, passedData):
-    processName = current_process().name
+    processName = current_process().name  # Process-2
+    processNumber = (processName[-1])  # take the last char of the name
     passedData['numProcesses'] += 1
+    passedData["finalFileText"][processNumber] = ""
     for line in block:
         originLine = line.split()
         fixedLine = TextBlob(line).correct()
@@ -15,7 +17,8 @@ def correctMisspelledWords(block, passedData):
                 passedData["misspelledWordsCount"] += 1
                 passedData["correctedWords"][originLine[i]
                                              ] = splittedFixedLine[i]
-        passedData["finalFileText"] += str(fixedLine)
+
+        passedData["finalFileText"][processNumber] += str(fixedLine)
 
 
 def main():
@@ -23,10 +26,9 @@ def main():
     manager = Manager()
     passedData = manager.dict()
     passedData["correctedWords"] = manager.dict()
+    passedData["finalFileText"] = manager.dict()
     passedData["misspelledWordsCount"] = 0
     passedData['numProcesses'] = 0
-    passedData["finalFileText"] = ""
-
     # start opening the file
     # fileName = input('Your file path: ')
     fileName = "files/1.txt"
@@ -68,10 +70,18 @@ def printResult(data):
         print(f'{w1} --> {w2}')
 
 
-def writeCorrectedFile(text):
+def writeCorrectedFile(t):
+    # open file
     path = "files/1_afterCorrection.txt"
     finalFile = open(path, "w")
-    finalFile.write(text)
+    # convert DictProxy(t) to a normal dictionary(text)
+    text = {}
+    for key, value in t.items():
+        text[key] = value
+    # write the final text from the sorted
+    # dictionary<processNumber,correctedText> by its key
+    for key in sorted(text):
+        finalFile.write(text[key])
     finalFile.close()
     print(f'File created at {path}')
 
